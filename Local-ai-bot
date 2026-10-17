@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Local AI Bot Studio v1.0</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0b0f1a;color:#e6e8ff;font-family:system-ui;min-height:100vh;padding-bottom:80px}
+.header{padding:20px;display:flex;align-items:center;gap:12px}
+.logo{width:48px;height:48px;background:linear-gradient(135deg,#7c5cff,#3ec5ff);border-radius:12px;display:grid;place-items:center;font-size:24px}
+.badge{background:#1e2336;padding:4px 10px;border-radius:20px;font-size:12px;color:#9aa3c0;margin-left:auto}
+.card{background:linear-gradient(180deg,#141a2e,#0f1320);border:1px solid #232a45;border-radius:20px;margin:12px;padding:18px}
+h1{font-size:22px} h1 span{color:#8ea0ff}
+.sub{color:#9aa3c0;font-size:14px;margin:10px 0;line-height:1.5}
+.btns{display:flex;gap:10px;margin-top:14px;flex-wrap:wrap}
+.btn{border:0;padding:12px 18px;border-radius:999px;font-weight:600;cursor:pointer}
+.btn-primary{background:linear-gradient(135deg,#5b8def,#7c5cff);color:white}
+.btn-dark{background:#1c2238;color:#cbd5ff;border:1px solid #2a3358}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:12px}
+.stat{background:#11172a;border:1px solid #1e2642;border-radius:16px;padding:12px;text-align:center}
+.stat b{display:block;font-size:20px}
+.stat span{font-size:11px;color:#8a94b5}
+.bot-list{padding:12px}
+.bot{border:1px solid #232a45;background:#101628;border-radius:16px;padding:14px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center}
+.nav{position:fixed;bottom:0;left:0;right:0;background:#0e1324;border-top:1px solid #1e2642;display:grid;grid-template-columns:repeat(5,1fr);padding:8px 0;z-index:5}
+.nav div{text-align:center;font-size:10px;color:#8a94b5}
+.plus{width:52px;height:52px;background:linear-gradient(135deg,#6a7bff,#a46eff);border-radius:16px;display:grid;place-items:center;margin:0 auto;font-size:28px;color:white;transform:translateY(-12px)}
+input,textarea{width:100%;background:#0f1426;border:1px solid #253055;border-radius:12px;padding:12px;color:white;margin:6px 0}
+#botArea{display:none;position:fixed;inset:0;background:#0b0f1a;z-index:20;overflow:auto}
+.chat{height:60vh;overflow:auto;padding:12px}
+.msg{margin:8px 0;padding:10px 14px;border-radius:14px;max-width:85%}
+.user{background:#1e2a4d;margin-left:auto}
+.botmsg{background:#151d33}
+</style>
+</head>
+<body>
+<div class="header"><div class="logo">💬</div><div><b>Local AI Bot Studio</b><div style="font-size:12px;color:#8a94b5">Create. Import. Launch. Your AI world...</div></div><div class="badge">v1.0</div></div>
+<div class="card">
+<div style="font-size:12px;background:#1a213d;display:inline-block;padding:4px 10px;border-radius:20px;margin-bottom:10px">✨ Bring your own bot</div>
+<h1>Your AI world, running on <span>your device</span></h1>
+<p class="sub">Import chatbot files you already have — a single HTML page or a ZIP package — and launch them right here. Your bots and your data stay local to this device. 100% offline, no credits.</p>
+<div class="btns">
+<button class="btn btn-primary" onclick="document.getElementById('file').click()">⬆ Import a bot</button>
+<button class="btn btn-dark" onclick="showMyBots()">🤖 My bots</button>
+</div>
+<input type="file" id="file" hidden accept=".html,.zip,.json" onchange="importBot(this)">
+</div>
+<div class="stats">
+<div class="stat"><b id="cBots">2</b><span>BOTS</span></div>
+<div class="stat"><b>0</b><span>FAVOURITES</span></div>
+<div class="stat"><b id="cLaunch">3</b><span>LAUNCHES</span></div>
+<div class="stat"><b id="cEvent">9</b><span>EVENTS</span></div>
+</div>
+<div style="color:#4ade80;font-size:13px;margin:0 12px">● Online — bots that use online AI services can run.</div>
+<div class="bot-list" id="list">
+<div style="display:flex;justify-content:space-between;margin:12px 0"><b>Your bots</b><span style="color:#8a94b5">View all</span></div>
+<div id="bots"></div>
+<div style="margin-top:16px" class="card">
+<b>Create New Bot (Offline, No Credits Needed)</b>
+<input id="bName" placeholder="Bot name e.g. Shona ZIMSEC Bot">
+<input id="bDesc" placeholder="Description e.g. Teaches Zvidudziramazita">
+<textarea id="bOpen" placeholder="Opening message e.g. Mhoro! How can I help?"></textarea>
+<textarea id="bRules" rows="5" placeholder="Instructions, one per line:
+When I say hi -> it replies Hello! How can I help?
+When I say musoro mutema -> it replies means black head..."></textarea>
+<button class="btn btn-primary" style="margin-top:10px" onclick="createBot()">+ Create Bot</button>
+</div>
+</div>
+<div id="botArea">
+<div style="padding:16px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #1e2642"><b id="activeName">Bot</b><button class="btn btn-dark" onclick="closeBot()">✕ Close</button></div>
+<div class="chat" id="chat"></div>
+<div style="padding:12px;display:flex;gap:8px;border-top:1px solid #1e2642"><input id="q" placeholder="Type..." onkeydown="if(event.key==='Enter')ask()"><button class="btn btn-primary" onclick="ask()">↑</button></div>
+<div style="padding:12px"><small style="color:#8a94b5">What it's been taught:</small><div id="manage"></div><button class="btn btn-dark" style="margin-top:8px" onclick="editBot()">Edit instructions</button></div>
+</div>
+<div class="nav"><div>🏠<br>Home</div><div onclick="showMyBots()">🤖<br>My Bots</div><div><div class="plus">+</div>Import</div><div>🕒<br>Activity</div><div>⚙️<br>Settings</div></div>
+<script>
+let bots = JSON.parse(localStorage.getItem('lab_bots')||'[]');
+if(bots.length===0){
+ bots=[{name:"Shona Tutor",desc:"ZIMSEC Shona",opening:"Mhoro! Ndibvunze nezve Shona.",rules:[{q:"hi",a:"Hello! How can I help?"},{q:"mhoro",a:"Mhoro! Wagona sei?"},{q:"musoro mutema",a:"Musoro mutema = munhu ane bvudzi dema."}],fallback:"Sorry handisati ndadzidza izvozvo."},{name:"Maths Bot",desc:"Offline maths",opening:"Hi! Ask me maths.",rules:[{q:"hi",a:"Hello! How can I help?"},{q:"2+2",a:"2+2 = 4"}],fallback:"I haven't been taught that yet."}];
+}
+let active=null;
+function save(){localStorage.setItem('lab_bots',JSON.stringify(bots));render();}
+function render(){
+ let c=document.getElementById('bots');c.innerHTML='';
+ bots.forEach((b,i)=>{
+  c.innerHTML+=`<div class="bot"><div><b>${b.name}</b><div style="font-size:12px;color:#8a94b5">${b.desc} • ${b.rules.length} rules</div></div><button class="btn btn-primary" onclick="openBot(${i})">Launch</button></div>`;
+ });
+ document.getElementById('cBots').textContent=bots.length;
+}
+function parseRules(text){
+ return text.split('\n').map(l=>l.trim()).filter(l=>l).map(l=>{
+  let parts=l.split('->');if(parts.length<2){let p=l.split(':');if(p.length<2)return null;return {q:p[0].trim(),a:p.slice(1).join(':').trim()};}
+  let q=parts[0].replace(/when i say/i,'').trim();let a=parts[1].replace(/it replies/i,'').trim();return {q,a};
+ }).filter(Boolean);
+}
+function createBot(){
+ let name=document.getElementById('bName').value||'My Bot';
+ let desc=document.getElementById('bDesc').value;
+ let opening=document.getElementById('bOpen').value||'Hello! How can I help?';
+ let rulesText=document.getElementById('bRules').value;
+ let rules=parseRules(rulesText);
+ if(rules.length===0)rules=[{q:"hi",a:"Hello! How can I help?"}];
+ let fallback="Sorry, I haven't been taught that yet. Try: "+rules.slice(0,3).map(r=>r.q).join(', ');
+ bots.unshift({name,desc,opening,rules,fallback});
+ save();
+ document.getElementById('bName').value='';document.getElementById('bDesc').value='';document.getElementById('bOpen').value='';document.getElementById('bRules').value='';
+ alert('Bot created! 100% offline.');
+}
+function openBot(i){
+ active=bots[i];document.getElementById('activeName').textContent=active.name;
+ document.getElementById('botArea').style.display='block';
+ document.getElementById('chat').innerHTML=`<div class="msg botmsg">${active.opening}</div>`;
+ let m=document.getElementById('manage');m.innerHTML='';
+ active.rules.forEach(r=>{m.innerHTML+=`<div style="font-size:12px;margin:4px 0;background:#151d33;padding:6px;border-radius:8px"><b>${r.q}</b> -> ${r.a}</div>`});
+}
+function closeBot(){document.getElementById('botArea').style.display='none';active=null;}
+function ask(){
+ let input=document.getElementById('q');let t=input.value.trim();if(!t||!active)return;
+ let chat=document.getElementById('chat');
+ chat.innerHTML+=`<div class="msg user">${t}</div>`;
+ let lower=t.toLowerCase();
+ let found=null;
+ for(let r of active.rules){if(lower.includes(r.q.toLowerCase())){found=r;break;}}
+ let reply=found?found.a:active.fallback;
+ chat.innerHTML+=`<div class="msg botmsg">${reply}</div>`;
+ input.value='';chat.scrollTop=chat.scrollHeight;
+}
+function showMyBots(){document.getElementById('list').scrollIntoView({behavior:'smooth'});}
+function editBot(){
+ if(!active)return;let newRules=prompt('Edit rules:',active.rules.map(r=>`${r.q} -> ${r.a}`).join('\n'));
+ if(newRules===null)return;active.rules=parseRules(newRules);save();openBot(bots.indexOf(active));
+}
+function importBot(inp){
+ let f=inp.files[0];if(!f)return;let reader=new FileReader();
+ reader.onload=e=>{
+  try{
+   let data=e.target.result;
+   if(f.name.endsWith('.json')){let b=JSON.parse(data);bots.unshift(b);}
+   else{bots.unshift({name:f.name,desc:'Imported',opening:'Hello!',rules:[{q:"hi",a:"Hello!"}],fallback:"Not taught yet"});}
+   save();
+  }catch(err){alert('Import failed: '+err.message);}
+ };
+ reader.readAsText(f);
+}
+render();
+</script>
+</body>
+</html>
